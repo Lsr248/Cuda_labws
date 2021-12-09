@@ -1,74 +1,181 @@
-﻿
-#include "cuda_runtime.h"
+﻿#include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
+#include "cmath"
 #include <stdio.h>
 
-// скалярное произведение векторов
+#define N 10
 
-#define N 5
-__global__ void addKernel(int* a, int* b, int* c)
+
+__global__ void calcf(float* c, const float* a, const float* b)
 {
     int i = threadIdx.x;
-    c[i] = a[i] * b[i];
+    c[i] = __fmul_rn(b[i], a[i]);
 }
 
-int main()
+__global__ void calcd(double* c, double* a, double* b)
 {
+    int i = threadIdx.x;
+    c[i] = __dmul_rn(b[i], a[i]);
+}
+
+
+__host__ int kernel1() {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
-    int  a[N];
-    int b[N];
-    int c[N];
+    float a[] = { 1,1,1,1,1,1,1,1,1,1 };
+    float b[] = { 2,2,2,2,2,2,2,2,2,2 };
+    float c[N];
+    float* ca, * cb, * cc;
 
-
-    int* dev_a = 0;
-    int* dev_b = 0;
-    int* dev_c = 0;
     cudaError_t cudaStatus;
 
-    for (int i = 0; i < N; i++)
-    {
-        a[i] = i * i;
-        b[i] = -i;
+    cudaStatus = cudaMalloc((void**)&ca, N * sizeof(float));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+    cudaStatus = cudaMalloc((void**)&cb, N * sizeof(float));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+    cudaStatus = cudaMalloc((void**)&cc, N * sizeof(float));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+
+
+    cudaStatus = cudaMemcpy(ca, a, N * sizeof(float), cudaMemcpyHostToDevice);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+    }
+
+    cudaStatus = cudaMemcpy(cb, b, N * sizeof(float), cudaMemcpyHostToDevice);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+    }
+
+    cudaEventRecord(start, 0);
+
+    calcf << <1, N >> > (cc, ca, cb);
+    // Copy input vectors from host memory to GPU buffers.
+
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+
+    float KernelTime;
+    cudaEventElapsedTime(&KernelTime, start, stop);
+    printf("KernelTime float: %.2f milliseconds\n",
+        KernelTime);
+    cudaStatus = cudaMemcpy(c, cc, N * sizeof(float), cudaMemcpyDeviceToHost);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
     }
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaStatus = cudaSetDevice(0);
-
-
-    // Allocate GPU buffers for three vectors (two input, one output)    .
-    cudaMalloc((void**)&dev_a, N * sizeof(int));
-
-    cudaMalloc((void**)&dev_b, N * sizeof(int));
-    cudaMalloc((void**)&dev_c, N * sizeof(int));
-
-
-    cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice);
-
-    addKernel << <1, N >> > (dev_a, dev_b, dev_c);
-
-    cudaMemcpy(c, dev_c, N * sizeof(int), cudaMemcpyDeviceToHost);
-
-    int sum = 0;
-    for (int i = 0; i < N; ++i)
-        sum += c[i];
-    printf("%d",sum);
-    /*for (int i = 0; i < N; i++)
-    {
-        printf("%d * %d = %d\n", a[i], b[i], c[i]);
-    }*/
-    // вывод результатов
-    // освобождение памяти
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-    cudaFree(dev_c);
+    float ansv = 0;
+    for (int i = 0; i < N; ++i) {
+        ansv += c[i];
+    }
+    printf("ansv if %f\n", ansv);
+    cudaFree(ca);
+    cudaStatus = cudaDeviceReset();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceReset failed!");
+        return 1;
+    }
     return 0;
 }
 
-// Helper function for using CUDA to add vectors in parallel.
+
+__host__ int kernal2() {
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    double a[] = { 1,1,1,1,1,1,1,1,1,1 };
+    double b[] = { 2,2,2,2,2,2,2,2,2,2 };
+    double c[N];
+    double* ca, * cb, * cc;
+
+    cudaError_t cudaStatus;
+
+    cudaStatus = cudaMalloc((void**)&ca, N * sizeof(double));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+    cudaStatus = cudaMalloc((void**)&cb, N * sizeof(double));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+    cudaStatus = cudaMalloc((void**)&cc, N * sizeof(double));
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMalloc failed!");
+    }
+
+
+    cudaStatus = cudaMemcpy(ca, a, N * sizeof(double), cudaMemcpyHostToDevice);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+    }
+
+    cudaStatus = cudaMemcpy(cb, b, N * sizeof(double), cudaMemcpyHostToDevice);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+    }
+
+    cudaEventRecord(start, 0);
+
+    calcd << <1, N >> > (cc, ca, cb);
+    // Copy input vectors from host memory to GPU buffers.
+
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+
+    float KernelTime;
+    cudaEventElapsedTime(&KernelTime, start, stop);
+    printf("KernelTime double: %.2f milliseconds\n",
+        KernelTime);
+    cudaStatus = cudaMemcpy(c, cc, N * sizeof(double), cudaMemcpyDeviceToHost);
+
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaMemcpy failed!");
+    }
+
+    // cudaDeviceReset must be called before exiting in order for profiling and
+    // tracing tools such as Nsight and Visual Profiler to show complete traces.
+    double ansv = 0;
+    for (int i = 0; i < N; ++i) {
+        ansv += c[i];
+    }
+    printf("ansv if %f\n", ansv);
+    cudaFree(ca);
+    cudaStatus = cudaDeviceReset();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceReset failed!");
+        return 1;
+    }
+
+}
+
+int main() {
+
+    kernel1();
+    kernal2();
+
+    return 0;
+}
