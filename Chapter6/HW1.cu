@@ -26,14 +26,6 @@ void HandleCudaStatus(cudaError status) {
 	}
 }
 
-__global__ void fill(double* matrix, int size, double val) {
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-	for (int i = idx; i < size; i += gridDim.x * blockDim.x) {
-		matrix[i] = val;
-	}
-}
-
 __global__ void matrix_mult(double* left, double* right, double* result, int m, int n, int k)
 {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -50,13 +42,6 @@ __global__ void matrix_mult(double* left, double* right, double* result, int m, 
 	}
 }
 
-__global__ void fill(double* a, double* b, int size) {
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-	for (int i = idx; i < size; i += gridDim.x * blockDim.x) {
-		a[i] = b[i];
-	}
-}
 
 void CheckCommutation()
 {
