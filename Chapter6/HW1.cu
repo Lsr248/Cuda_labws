@@ -1,4 +1,4 @@
-﻿#include <cuda.h>
+#include <cuda.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
@@ -43,7 +43,8 @@ __global__ void matrix_mult(double* left, double* right, double* result, int m, 
 }
 
 
-void CheckCommutation()
+
+int main()
 {
 	const int N = 10;
 	const int array_size = N * N;
@@ -52,21 +53,21 @@ void CheckCommutation()
 
 
 
-	double  a [array_size];
-	double b [array_size];
+	double  a[array_size];
+	double b[array_size];
 
 	double* leftToRightCpu = new double[array_size];
 	double* rightToLeftCpu = new double[array_size];
 
 	double* dev_a;
 	double* dev_b;
-	double* dev_clr ;
+	double* dev_clr;
 	double* dev_crl;
-	
+
 
 	for (int i = 0; i < array_size; ++i)
 	{
-		a[i] = i+1.5;
+		a[i] = i + 1.5;
 		b[i] = i;
 	}
 
@@ -98,14 +99,9 @@ void CheckCommutation()
 
 
 	HandleCudaStatus(cudaMemcpy((void*)leftToRightCpu, (void*)dev_clr, array_size * sizeof(double), cudaMemcpyDeviceToHost));
-	
+
 	HandleCudaStatus(cudaMemcpy((void*)rightToLeftCpu, (void*)dev_crl, array_size * sizeof(double), cudaMemcpyDeviceToHost));
 
-
-	for (int i = 0; i < array_size; i++)
-	{
-		printf("%f ,%f, %f, %f \n", a[i], b[i], leftToRightCpu[i], rightToLeftCpu[i]);
-	}
 
 	for (int i = 0; i < array_size; ++i)
 	{
@@ -116,16 +112,4 @@ void CheckCommutation()
 		}
 	}
 	std::cout << "Matrix are commutative\n";
-}
-
-int main()
-{
-	try
-	{
-		CheckCommutation();
-	}
-	catch (std::exception& e)
-	{
-		std::cout << e.what() << std::endl;
-	}
 }
